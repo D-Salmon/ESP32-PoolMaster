@@ -48,11 +48,11 @@ Compared to the initial project, the main differences are:
  
 
 
-<h2>PoolMaster 5.0.0</h2>
+<h2>PoolMaster 7.0.0</h2>
 <h2>Arduino Mega2560 (or Controllino-Maxi) Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
-<p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMaster_3.jpg" width="802" title="Overview"> </p> <br /><br />
 
 <br />
 <p align="center"> <img src="/docs/Grafana.png" width="802" title="Dashboard"> </p> <br /><br />
