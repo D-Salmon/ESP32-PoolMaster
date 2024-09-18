@@ -1,4 +1,4 @@
-<h2>ESP32 PoolMaster</h2>
+<h2>ESP32 PoolMaster with or without electrolyser</h2>
 <h4>Brief description</h4>
 <p> This project is a software port to an ESP32 platform of the PoolMaster project from Loic74650 (https://github.com/Loic74650/PoolMaster)<br />
 Compared to the initial project, the main differences are:
