@@ -1,12 +1,12 @@
 // Firmware revisions
 #define FIRMW "ESP-3.3"
-#define TFT_FIRMW "TFT-2.0"						   
+#define TFT_FIRMW "TFT-2.1"						   
 
 #define DEBUG_LEVEL DBG_INFO     // Possible levels : NONE/ERROR/WARNING/INFO/DEBUG/VERBOSE
 
 //Version of config stored in EEPROM
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 50
+#define CONFIG_VERSION 52
 
 // WiFi credentials
 #define WIFI_NETWORK "YOUR_WIFI_NETWORK_ID"
@@ -34,8 +34,8 @@
 #define ROBOT_PUMP	    33
 #define PH_PUMP         25
 #define CHL_PUMP        26
-#define RELAY_R0        27   // Projecteur
-#define RELAY_R1         4   // Spare, not connected
+#define RELAY_LIGHTS    27   // Projecteur
+#define RELAY_R1         4   // Spare, not connected Or used for electrolyser
 
 //Digital input pins connected to Acid and Chl tank level reed switches
 #define CHL_LEVEL       39   // not wired. Use NO_LEVEL option of Pump class
@@ -81,10 +81,10 @@
 #define MQTT_SERVER_PORT 1883
 
 // Uncomment if MQTT broker needs login/pwd
-//#define MQTT_LOGIN 				
-//#define MQTT_SERVER_ID    "ESP32Pool"		   // MQTT server ID
-//#define MQTT_SERVER_LOGIN "Your_Login"
-//#define MQTT_SERVER_PWD   "Your_Pwd" 				
+#define MQTT_LOGIN 				
+#define MQTT_SERVER_ID    "ESP32Pool"		   // MQTT server ID
+#define MQTT_SERVER_LOGIN "Your_Login"
+#define MQTT_SERVER_PWD   "Your_Pwd" 				
 
 // Topic used in DEVT or OPER mode
 
@@ -141,3 +141,7 @@
                                     // the sensor value is computed from the output of the PID 
                                     // loop to reach linearly the theorical value produced by this
                                     // output after one hour
+
+
+// if an electrolyser is used
+#define ELECTROLYSE

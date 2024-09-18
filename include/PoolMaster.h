@@ -33,6 +33,8 @@ struct StoreStruct
   double Ph_SetPoint, Orp_SetPoint, PSI_HighThreshold, PSI_MedThreshold, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1, PSICalibCoeffs0, PSICalibCoeffs1;
   double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue;
   double AcidFill, ChlFill, pHTankVol, ChlTankVol, pHPumpFR, ChlPumpFR;
+  bool FiltrationOn, RelayOn, LightOn, RobotOn;  //ajout
+  uint8_t SecureElectro, DelayElectro; //ajout
 } ;
 
 extern StoreStruct storage;
@@ -48,6 +50,7 @@ extern Pump FiltrationPump;
 extern Pump PhPump;
 extern Pump ChlPump;
 extern Pump RobotPump;
+extern Pump OrpProd;  //ajout
 
 //PIDs instances
 //Specify the links and initial tuning parameters
