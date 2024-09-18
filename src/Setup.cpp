@@ -38,7 +38,9 @@ StoreStruct storage =
   1800000, 1800000, 0, 0,
   7.3, 720.0, 1.8, 0.7, 10.0, 18.0, 3.0, -2.2183, 7.0, 431.03, 0.0, 1.31, -0.1,
   2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  25.0, 60.0, 20.0, 20.0, 1.5, 1.5
+  25.0, 60.0, 20.0, 20.0, 1.5, 1.5,
+  0, 0, 0, 0, //ajout
+  15, 2  //ajout
 };
 #else
 StoreStruct storage =
@@ -50,7 +52,9 @@ StoreStruct storage =
   1800000, 1800000, 0, 0,
   7.3, 720.0, 1.8, 0.7, 10.0, 18.0, 3.0, 3.61078313, -3.88020422, -966.946396, 2526.88809, 1.31, -0.1,
   2700000.0, 0.0, 0.0, 18000.0, 0.0, 0.0, 0.0, 0.0, 28.0, 7.3, 720., 1.3,
-  25.0, 60.0, 20.0, 20.0, 1.5, 1.5
+  25.0, 60.0, 20.0, 20.0, 1.5, 1.5,
+  0, 0, 0, 0, //ajout
+  15, 2  //ajout
 };
 #endif
 
@@ -83,6 +87,7 @@ Pump FiltrationPump(FILTRATION_PUMP, FILTRATION_PUMP);
 Pump PhPump(PH_PUMP, PH_PUMP, NO_LEVEL, FILTRATION_PUMP, storage.pHPumpFR, storage.pHTankVol, storage.AcidFill);
 Pump ChlPump(CHL_PUMP, CHL_PUMP, NO_LEVEL, FILTRATION_PUMP, storage.ChlPumpFR, storage.ChlTankVol, storage.ChlFill);
 Pump RobotPump(ROBOT_PUMP, ROBOT_PUMP, NO_TANK, FILTRATION_PUMP);
+Pump OrpProd(RELAY_R1, RELAY_R1, NO_TANK, FILTRATION_PUMP);  //ajout
 
 // PIDs instances
 //Specify the direction and initial tuning parameters
@@ -145,8 +150,8 @@ void setup()
   info();
   
   // Initialize Nextion TFT
-  InitTFT();
   ResetTFT();
+  InitTFT(); 
 
   //Read ConfigVersion. If does not match expected value, restore default values
   if(nvs.begin("PoolMaster",true))
@@ -179,10 +184,8 @@ void setup()
   pinMode(PH_PUMP, OUTPUT);
   pinMode(CHL_PUMP, OUTPUT);
   pinMode(ROBOT_PUMP,OUTPUT);
-
-  pinMode(RELAY_R0, OUTPUT);
+  pinMode(RELAY_LIGHTS, OUTPUT);
   pinMode(RELAY_R1, OUTPUT);
-
   pinMode(BUZZER, OUTPUT);
 
   // As the relays on the board are activated by a LOW level, set all levels HIGH at startup
@@ -190,7 +193,7 @@ void setup()
   digitalWrite(PH_PUMP,HIGH); 
   digitalWrite(CHL_PUMP,HIGH);
   digitalWrite(ROBOT_PUMP,HIGH);
-  digitalWrite(RELAY_R0,HIGH);
+  digitalWrite(RELAY_LIGHTS,HIGH);
   digitalWrite(RELAY_R1,HIGH);
 
 // Warning: pins used here have no pull-ups, provide external ones
@@ -270,6 +273,8 @@ void setup()
 
   RobotPump.SetMaxUpTime(0);          //no runtime limit for the robot pump
 
+  OrpProd.SetMaxUpTime(0);     //ajout : no runtime limit for the electrolyser
+  
   PhPump.SetFlowRate(storage.pHPumpFR);
   PhPump.SetTankVolume(storage.pHTankVol);
   PhPump.SetTankFill(storage.AcidFill);
@@ -495,6 +500,12 @@ bool loadConfig()
   storage.ChlTankVol            = nvs.getDouble("ChlTankVol",20.);
   storage.pHPumpFR              = nvs.getDouble("pHPumpFR",1.5);
   storage.ChlPumpFR             = nvs.getDouble("ChlPumpFR",1.5);
+  storage.FiltrationOn          = nvs.getBool("FiltrationOn",0);  //ajout
+  storage.RelayOn         = nvs.getBool("RelayOn",0);  //ajout
+  storage.LightOn               = nvs.getBool("LightOn",0);  //ajout
+  storage.RobotOn               = nvs.getBool("RobotOn",0);  //ajout
+  storage.SecureElectro         = nvs.getUChar("SecureElectro",15);  //ajout
+  storage.DelayElectro          = nvs.getUChar("DelayElectro",2);  //ajout
 
   nvs.end();
 
@@ -514,6 +525,8 @@ bool loadConfig()
               storage.PhPIDOutput,storage.OrpPIDOutput,storage.TempValue,storage.PhValue,storage.OrpValue,storage.PSIValue);
   Debug.print(DBG_INFO,"%3.0f, %3.0f, %3.0f, %3.0f, %3.1f, %3.1f ",storage.AcidFill,storage.ChlFill,storage.pHTankVol,storage.ChlTankVol,
               storage.pHPumpFR,storage.ChlPumpFR);
+  Debug.print(DBG_INFO,"%d, %d, %d, %d, %d, %d ",storage.FiltrationOn,storage.RelayOn,storage.LightOn,storage.RobotOn,
+              storage.SecureElectro,storage.DelayElectro);
 
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
@@ -571,6 +584,12 @@ bool saveConfig()
   i += nvs.putDouble("ChlTankVol",storage.ChlTankVol);
   i += nvs.putDouble("pHPumpFR",storage.pHPumpFR);
   i += nvs.putDouble("ChlPumpFR",storage.ChlPumpFR);
+  i += nvs.putBool("FiltrationOn",storage.FiltrationOn);  //ajout
+  i += nvs.putBool("RelayOn",storage.RelayOn);  //ajout
+  i += nvs.putBool("LightOn",storage.LightOn);  //ajout
+  i += nvs.putBool("RobotOn",storage.RobotOn);  //ajout
+  i += nvs.putUChar("SecureElectro",storage.SecureElectro);  //ajout
+  i += nvs.putUChar("DelayElectro",storage.DelayElectro);  //ajout
 
   nvs.end();
 
