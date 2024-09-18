@@ -12,6 +12,9 @@ Compared to the initial project, the main differences are:
   <li> manage only 2 relays (+ the four pumps)</li>
   <li> analog measurements done by external ADC I2C module (ADS1115), in async mode</li>
   <li> and more...
+  <li> electrolyser mode : (un)comment last parameter in config.h to (un)able electrolyser...
+  <li> display Nextion : to enable electrolyser icon and menu, change int electro=1 and replace with int electro=0 in Program's
+  <li> display Nextion : dynamically switch from english to french language  
 </ul>  <br />
   The project isn't a fork of the original one due to the different structure of source files with PlatformIO ((.cpp, .h).
   A dedicated board has been designed to host all components. There are 8 LEDs at the bottom to display status, warnings and alarms.
