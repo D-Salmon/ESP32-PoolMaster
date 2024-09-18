@@ -43,6 +43,7 @@ Compared to the initial project, the main differences are:
 <p align="center"> <img src="/docs/PoolMaster_board.JPG" width="802" title="Board"> </p> <br /><br />  
 <p align="center"> <img src="/docs/Page 0.JPG" width="300" title=""> </p>
 <p align="center"> <img src="/docs/Page 1.JPG" width="300" title=""> </p>
+<p align="center"> <img src="/docs/Page 2.JPG" width="300" title=""> </p>
 <p align="center"> <img src="/docs/Page 3.JPG" width="300" title=""> </p><br /><br />  
  
 
