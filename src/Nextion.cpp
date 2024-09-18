@@ -24,10 +24,6 @@ static bool TFT_Robot = false;
 static bool TFT_Lights = false;
 static bool TFT_Relay = false;
 static bool TFT_Winter = false;
-//static bool TFT_Electro = false;
-static uint8_t TFT_Nextion = 0 ;
-static uint8_t TFT_Calcul = 0 ;
-
 
 // Nextion TFT object. Choose which ever Serial port
 // you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
