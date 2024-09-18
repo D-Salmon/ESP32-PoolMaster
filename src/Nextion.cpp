@@ -176,6 +176,8 @@ void UpdateTFT()
     {
       myNex.writeStr(F("page0.vapH.txt"), String(storage.PhValue, 2));
       myNex.writeStr(F("page0.vaOrp.txt"), String(storage.OrpValue, 0));
+      myNex.writeNum(F("pageElectro.va0.val"), storage.SecureElectro);
+      myNex.writeNum(F("pageElectro.va1.val"), storage.DelayElectro);
     }
 
     if (CurrentPage == 3)
