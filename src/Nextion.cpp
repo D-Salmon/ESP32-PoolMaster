@@ -24,6 +24,9 @@ static bool TFT_Robot = false;
 static bool TFT_Lights = false;
 static bool TFT_Relay = false;
 static bool TFT_Winter = false;
+//static bool TFT_Electro = false;
+static uint8_t TFT_Nextion = 0 ;
+static uint8_t TFT_Calcul = 0 ;
 
 
 // Nextion TFT object. Choose which ever Serial port
@@ -35,7 +38,6 @@ void InitTFT(void);
 void ResetTFT(void);
 void UpdateTFT(void);
 void UpdateWiFi(bool);
-
 
 // Reset TFT at start of controller - Change transmission rate to 115200 bauds on both side (Nextion then ESP)
 // could have been not in HMI file, but it is good to know that after reset the Nextion goes back to 9600 bauds
@@ -54,13 +56,14 @@ void InitTFT()
   TFT_Filt     = storage.FiltrationOn;
   TFT_Winter   = storage.WinterMode;
   TFT_Robot    = storage.RobotOn;
-  TFT_Lights   = storage.LightOn;
+  TFT_Lights   = storage.LightOn; 
+  TFT_Relay    = storage.RelayOn; 
 #ifdef ELECTROLYSE 
-  TFT_Relay    = storage.RelayOn;
+  myNex.writeNum(F("page0.vaElectro.val"), 1);
 #else
-  TFT_Relay    = 0;
+  myNex.writeNum(F("page0.vaElectro.val"), 0);
 #endif
-
+  
   myNex.writeStr(F("page3.vaMCFW.txt"), FIRMW);
   myNex.writeStr(F("page3.vaTFTFW.txt"), TFT_FIRMW); 
   myNex.writeNum(F("page0.vaMode.val"), storage.AutoMode);
@@ -68,7 +71,7 @@ void InitTFT()
   myNex.writeNum(F("page1.vaFilt.val"), storage.FiltrationOn);
   myNex.writeNum(F("page1.vaRobot.val"), storage.RobotOn);
   myNex.writeNum(F("page1.vaWinter.val"), storage.WinterMode);
-  myNex.writeNum(F("page1.vaRelay.val"), TFT_Relay);
+  myNex.writeNum(F("page1.vaRelay.val"), storage.RelayOn);
 }
 
 void UpdateWiFi(bool wifi)

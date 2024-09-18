@@ -64,10 +64,14 @@ void ProcessCommand(void *pvParameters)
         // command which sets regulation and filtration to manual or auto modes
         if (command.containsKey(F("Mode")))
         {
-          if ((bool)command[F("Mode")] == 0)  // mode 0 = Manu
+          if ((bool)command[F("Mode")] == 0) // mode 0 = Manu
           {
             storage.AutoMode = 0;
             EmergencyStopFiltPump = 0;
+      #ifdef ELECTROLYSE
+            if (!OrpProd.IsRunning() && storage.RelayOn) storage.RelayOn = 0;
+      #endif
+            if (!FiltrationPump.IsRunning() && storage.FiltrationOn) storage.FiltrationOn = 0;
           }
           else
           {

@@ -180,7 +180,7 @@ void PoolMaster(void *pvParameters)
     }
 
     //ajout : stop electrolyser if pump is not running or electrolyse mode is off
-    if(OrpProd.IsRunning() && (!FiltrationPump.IsRunning() || !storage.RelayOn)) OrpProd.Stop();
+    if (OrpProd.IsRunning() && (!FiltrationPump.IsRunning() || !storage.RelayOn)) OrpProd.Stop();
 
     /*
     //start cleaning robot for 2 hours, 30mn after filtration start
