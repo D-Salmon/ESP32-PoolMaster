@@ -60,93 +60,8 @@ void ProcessCommand(void *pvParameters)
       {
         Debug.print(DBG_DEBUG,"Json parseObject() success: %s",JSONCommand);
 
-        // "Mode" 
-        // command which sets regulation and filtration to manual or auto modes
-        if (command.containsKey(F("Mode")))
-        {
-          if ((bool)command[F("Mode")] == 0) // mode 0 = Manu
-          {
-            storage.AutoMode = 0;
-            EmergencyStopFiltPump = 0;
-      #ifdef ELECTROLYSE
-            if (!OrpProd.IsRunning() && storage.RelayOn) storage.RelayOn = 0;
-      #endif
-            if (!FiltrationPump.IsRunning() && storage.FiltrationOn) storage.FiltrationOn = 0;
-          }
-          else
-          {
-            if(!storage.AutoMode && !storage.WinterMode)  // mode 1 = Auto
-            {
-              storage.AutoMode = 1;
-              storage.FiltrationOn = 1; 
-              storage.RelayOn = 1; 
-              EmergencyStopFiltPump = false;
-            }
-          }
-          saveParam("AutoMode",storage.AutoMode);
-          saveParam("FiltrationOn",storage.FiltrationOn);
-          saveParam("RelayOn",storage.RelayOn);
-        }
-        // "FiltPump" 
-        // command which starts or stops the filtration pump
-        else if (command.containsKey(F("FiltPump"))) 
-        {
-          if ((int)command[F("FiltPump")] == 0)
-          {
-            EmergencyStopFiltPump = true;
-            storage.AutoMode = 0;
-            storage.FiltrationOn  = 0;
-            storage.RelayOn = 0 ;
-          }
-          else 
-          {
-            if (!storage.WinterMode)
-            {
-              EmergencyStopFiltPump = false;
-              storage.FiltrationOn  = 1;
-            }
-          }
-          saveParam("AutoMode",storage.AutoMode);
-          saveParam("FiltrationOn",storage.FiltrationOn);
-          saveParam("RelayOn",storage.RelayOn);
-        }
-       
-        // command which (un)enables Relay or Electrolyser
-        else if (command.containsKey(F("Relay"))) 
-        {
-#ifdef ELECTROLYSE 
-          storage.RelayOn=((bool)command[F("Relay")] == 1)&&(storage.FiltrationOn == 1);
-#else          
-          storage.RelayOn=((bool)command[F("Relay")] == 1); 
-#endif
-          saveParam("RelayOn",storage.RelayOn);
-        }
-        else if (command.containsKey(F("Winter"))) //"Winter" command which activate/deactivate Winter Mode
-        {
-          storage.WinterMode=((bool)command[F("Winter")]) && (!storage.FiltrationOn);
-          if (storage.WinterMode && storage.RobotOn)
-          {
-            storage.RobotOn = 0; 
-            saveParam("RobotOn",storage.RobotOn);
-          } 
-          saveParam("WinterMode",storage.WinterMode);
-          PublishSettings(); 
-        }
-        else if (command.containsKey(F("RobotPump"))) //"RobotPump" command which starts or stops the Robot pump
-        {
-          if ((int)command[F("RobotPump")] == 0) storage.RobotOn = 0;  
-            else if (!storage.WinterMode) storage.RobotOn =1 ;              
-          saveParam("RobotOn",storage.RobotOn);
-        }
-        //"Light" command which is called to actuate relays
-        else if (command.containsKey(F("Light")))
-        {
-          storage.LightOn = ((int)command[F("Light")] == 1);
-//          storage.LightOn ? digitalWrite(RELAY_LIGHTS, LOW) : digitalWrite(RELAY_LIGHTS, HIGH);
-          saveParam("LightOn",storage.LightOn);
-        }
         //Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative
-        else if (command.containsKey(F("TempExt")))
+        if (command.containsKey(F("TempExt")))
         {
           storage.TempExternal = command["TempExt"].as<float>();
           Debug.print(DBG_DEBUG,"External Temperature: %4.1f°C",storage.TempExternal);
@@ -279,6 +194,48 @@ void ProcessCommand(void *pvParameters)
             PublishSettings();
             Debug.print(DBG_DEBUG,"Calibration completed. Coeffs are: %10.2f, %10.2f",storage.PSICalibCoeffs0,storage.PSICalibCoeffs1);
           }
+        }
+        // "Mode" 
+        // command which sets regulation and filtration to manual or auto modes
+        else if (command.containsKey(F("Mode")))
+        {
+          if ((bool)command[F("Mode")] == 0)  // mode 0 = Manu
+          {
+            storage.AutoMode = 0;
+
+            //Stop PIDs
+            SetPhPID(false);
+            SetOrpPID(false);
+          }
+          else
+          {
+            storage.AutoMode = 1;
+          }
+          saveParam("AutoMode",storage.AutoMode);
+        }
+         // "Electrolyse"
+        // command which (un)enables Electrolyser
+        else if (command.containsKey(F("Electrolyse"))) 
+        {
+          if ((int)command[F("Electrolyse")] == 1)  // activate electrolyse
+          {
+            // start electrolyse if not below minimum temperature
+            if (storage.TempValue >= (double)storage.SecureElectro && !OrpProd.IsRunning())
+              OrpProd.Start();
+          }
+          else if (OrpProd.IsRunning()) OrpProd.Stop();
+        }
+        else if (command.containsKey(F("ElectrolyseMode"))) 
+        {
+          (bool)command[F("ElectrolyseMode")] ? storage.ElectrolyseMode = true : storage.ElectrolyseMode = false;
+          saveParam("ElectrolyseMode",storage.ElectrolyseMode);
+          PublishSettings();
+        }
+        else if (command.containsKey(F("Winter"))) //"Winter" command which activate/deactivate Winter Mode
+        {
+          (bool)command[F("Winter")] ? storage.WinterMode = true : storage.WinterMode = false;
+          saveParam("WinterMode",storage.WinterMode);
+          PublishSettings(); 
         }
         else if (command.containsKey(F("PhSetPoint"))) //"PhSetPoint" command which sets the setpoint for Ph
         {
@@ -461,6 +418,35 @@ void ProcessCommand(void *pvParameters)
         {
           PublishSettings();
         }         
+        // "FiltPump" 
+        // command which starts or stops the filtration pump
+        else if (command.containsKey(F("FiltPump"))) //"FiltPump" command which starts or stops the filtration pump
+        {
+          if ((int)command[F("FiltPump")] == 0 && FiltrationPump.IsRunning())
+          {
+            EmergencyStopFiltPump = true;
+            FiltrationPump.Stop();  //stop filtration pump
+
+            //Stop PIDs
+            SetPhPID(false);
+            SetOrpPID(false);
+          }
+          else if ((int)command[F("FiltPump")] == 1 && !FiltrationPump.IsRunning())
+          {
+            EmergencyStopFiltPump = false;
+            FiltrationPump.Start();   //start filtration pump
+          }
+        }
+        else if (command.containsKey(F("RobotPump"))) //"RobotPump" command which starts or stops the Robot pump
+        {
+          if ((int)command[F("RobotPump")] == 0){
+            RobotPump.Stop();    //stop robot pump
+            cleaning_done = true;
+          } else {
+            RobotPump.Start();   //start robot pump
+            cleaning_done = false;
+          }  
+        }
         else if (command.containsKey(F("PhPump"))) //"PhPump" command which starts or stops the Acid pump
         {
           if ((int)command[F("PhPump")] == 0)
@@ -478,27 +464,39 @@ void ProcessCommand(void *pvParameters)
         else if (command.containsKey(F("PhPID"))) //"PhPID" command which starts or stops the Ph PID loop
         {
           if ((int)command[F("PhPID")] == 0)
-          {
-            //Stop PID
             SetPhPID(false);
-          }
           else
-          {
-            //Start PID
             SetPhPID(true);
-          }
+        }
+        else if (command.containsKey(F("PhPIDEnabled"))) //"PhPID" command which starts or stops the Ph PID loop
+        {
+          storage.pHPIDEnabled = (int)command[F("PhPIDEnabled")];
+          if (storage.pHPIDEnabled == 0) SetPhPID(false);
         }
         else if (command.containsKey(F("OrpPID"))) //"OrpPID" command which starts or stops the Orp PID loop
         {
           if ((int)command[F("OrpPID")] == 0)
-          {
-            //Stop PID
             SetOrpPID(false);
-          }
           else
-          {
-            //Start PID
             SetOrpPID(true);
+        }
+        else if (command.containsKey(F("OrpPIDEnabled"))) //"PhPID" command which starts or stops the Ph PID loop
+        {
+          storage.OrpPIDEnabled = (int)command[F("OrpPIDEnabled")];
+          if (storage.OrpPIDEnabled == 0) SetOrpPID(false);
+        }
+        //"Relay" command which is called to actuate relays
+        //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
+        else if (command.containsKey(F("Relay")))
+        {
+          switch ((int)command[F("Relay")][0])
+          {
+            case 0:
+              (bool)command[F("Relay")][1] ? RELAYR0.Start() : RELAYR0.Stop();
+              break;
+            case 1:
+              (bool)command[F("Relay")][1] ? RELAYR1.Start()  : RELAYR1.Stop();
+              break;
           }
         }
         else if (command.containsKey(F("Reboot")))//"Reboot" command forces a reboot of the controller
@@ -518,24 +516,27 @@ void ProcessCommand(void *pvParameters)
             ChlPump.ClearErrors();
 
           mqttErrorPublish(""); // publish clearing of error(s)
-/*
-          //supprimer : start filtration pump if within scheduled time slots
+
+          //start filtration pump if within scheduled time slots
           if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
             FiltrationPump.Start();
-*/
         }
-
-        //"ElectroSecure" command which is called when electrolyser is cpnfigured
-        //First parameter is secure temp, second parameter is timer for starting electrolyser
+        //"ElectroSecure" command which is called when electrolyser is configured
+        // Secure Temperature
         else if (command.containsKey(F("ElectroSecure")))
         {
-          storage.SecureElectro = (int8_t)command[F("ElectroSecure")][0];
-          storage.DelayElectro = (int8_t)command[F("ElectroSecure")][1];
+          storage.SecureElectro = (int8_t)command[F("ElectroSecure")];
           saveParam("SecureElectro",storage.SecureElectro);
+          PublishSettings();
+        }
+        //"ElectroDelay" command which is called when electrolyser is configured
+        // Delay to start
+        if (command.containsKey(F("ElectroDelay")))
+        {
+          storage.DelayElectro = (int8_t)command[F("ElectroDelay")];
           saveParam("DelayElectro",storage.DelayElectro);
           PublishSettings();
         }
-
         // Publish Update on the MQTT broker the status of our variables
         PublishMeasures();
       }

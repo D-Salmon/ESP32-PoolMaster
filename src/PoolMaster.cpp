@@ -3,12 +3,19 @@
 #include <Arduino.h>                // Arduino framework
 #include "Config.h"
 #include "PoolMaster.h"
+#ifdef SMTP
 #include <ESP_Mail_Client.h>
+#endif
+#ifdef ELEGANT_OTA
+static WiFiClient wificlient;
+WebServer server(80);
+#endif
 
+#ifdef SMTP
 SMTPSession smtp;
 Session_Config config;
 SMTP_Message message;
-
+#endif
 // Functions prototypes
 
 void readLocalTime(void);
@@ -22,9 +29,11 @@ void mqttErrorPublish(const char*);
 void PublishSettings(void);
 void UpdateTFT(void);
 void stack_mon(UBaseType_t&);
+#ifdef SMTP
 void smtpCallback(SMTP_Status);
 bool SMTP_Connect(void);
 void Send_Email(void);
+#endif
 
 void PoolMaster(void *pvParameters)
 {
@@ -32,7 +41,7 @@ void PoolMaster(void *pvParameters)
   bool d_calc = false;                            // Filtration duration computed
 
   static UBaseType_t hwm=0;                       // free stack size
-
+  #ifdef SMTP
   MailClient.networkReconnect(true);
   #ifndef SILENT_MODE
     smtp.debug(1);
@@ -52,7 +61,7 @@ void PoolMaster(void *pvParameters)
   message.text.transfer_encoding = Content_Transfer_Encoding::enc_7bit;
   message.priority = esp_mail_smtp_priority_low;
   message.response.notify = esp_mail_smtp_notify_success | esp_mail_smtp_notify_failure | esp_mail_smtp_notify_delay;
-
+  #endif
   while(!startTasks);
   vTaskDelay(DT3);                                // Scheduling offset 
 
@@ -79,15 +88,20 @@ void PoolMaster(void *pvParameters)
     // Handle OTA update
     ArduinoOTA.handle();
 
-    //update pumps
+#ifdef ELEGANT_OTA
+    server.handleClient();
+    ElegantOTA.loop();
+#endif
+
+    //update pumps & relays
     FiltrationPump.loop();
     PhPump.loop();
     ChlPump.loop();
     RobotPump.loop(); 
 
-    #ifdef ELECTROLYSE  //ajout
-    OrpProd.loop(); 
-    #endif
+    RELAYR0.loop();
+    RELAYR1.loop();
+    if (storage.ElectrolyseMode) OrpProd.loop(); 
 
     //reset time counters at midnight and send sync request to time server
     if (hour() == 0 && !DoneForTheDay)
@@ -104,7 +118,10 @@ void PoolMaster(void *pvParameters)
         ChlPump.ResetUpTime();
         ChlPump.SetTankFill(storage.ChlFill);
         RobotPump.ResetUpTime();
-        OrpProd.ResetUpTime();  //ajout
+
+        RELAYR0.ResetUpTime();
+        RELAYR1.ResetUpTime();
+        OrpProd.ResetUpTime();
 
         EmergencyStopFiltPump = false;
         d_calc = false;
@@ -158,59 +175,43 @@ void PoolMaster(void *pvParameters)
     if(second() == 30 && d_calc) d_calc = false;
     #endif
 
-    //ajout : start filtration pump in manual mode
-    if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && !storage.AutoMode && storage.FiltrationOn)
-        FiltrationPump.Start();
-
     //start filtration pump as scheduled
-    if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode && storage.FiltrationOn &&  //modifier
+    if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
+        hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
+        FiltrationPump.Start();
+ /*   if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
         !PSIError && hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
         FiltrationPump.Start();
-
-    //ajout : start or stop, electrolyser if needed 
-    if (FiltrationPump.IsRunning() && storage.RelayOn)
+*/
+    //start & stop electrolyse as needed
+    if (FiltrationPump.IsRunning() && storage.ElectrolyseMode)
     {
-        bool ElectrolysEnabled = (!AntiFreezeFiltering && storage.TempValue >= (double)storage.SecureElectro && ((millis() - FiltrationPump.LastStartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro)) ;
-    
-        if (!OrpProd.IsRunning() && ElectrolysEnabled && storage.OrpValue <= storage.Orp_SetPoint*0.9)
+        bool ElectrolyseCanStart = (!AntiFreezeFiltering && storage.TempValue >= (double)storage.SecureElectro && ((millis() - FiltrationPump.LastStartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro)) ;
+
+        if (!OrpProd.IsRunning() && ElectrolyseCanStart && storage.OrpValue <= storage.Orp_SetPoint*0.9) {
+            Debug.print(DBG_VERBOSE,"Start Electrolyse low chlorine: %d < %d",storage.OrpValue,storage.Orp_SetPoint*0.9);
             OrpProd.Start();
+        }
           
-        if (OrpProd.IsRunning() && (!ElectrolysEnabled || storage.OrpValue >= storage.Orp_SetPoint*1.05))
+        if (OrpProd.IsRunning() && storage.AutoMode && (!ElectrolyseCanStart || storage.OrpValue >= storage.Orp_SetPoint*1.05)) {
+            Debug.print(DBG_VERBOSE,"Stop Electrolyse high chlorine: %d > %d",storage.OrpValue, storage.Orp_SetPoint*1.05);
             OrpProd.Stop(); 
+        }
     }
 
-    //ajout : stop electrolyser if pump is not running or electrolyse mode is off
-    if (OrpProd.IsRunning() && (!FiltrationPump.IsRunning() || !storage.RelayOn)) OrpProd.Stop();
-
-    /*
     //start cleaning robot for 2 hours, 30mn after filtration start
-    if (FiltrationPump.IsRunning() && storage.RobotOn && !storage.WinterMode && !RobotPump.IsRunning() &&  //modifier
+    if (FiltrationPump.IsRunning() && storage.AutoMode && !storage.WinterMode && !RobotPump.IsRunning() &&
         ((millis() - FiltrationPump.LastStartTime) / 1000 / 60) >= ROBOT_DELAY && !cleaning_done)
     {
         RobotPump.Start();
         Debug.print(DBG_INFO,"Robot Start 30mn after Filtration");   
     }
-    if(RobotPump.IsRunning() && storage.RobotOn && ((millis() - RobotPump.LastStartTime) / 1000 / 60) >= ROBOT_DURATION)  //modiier
-    {
-        RobotPump.Stop();
-        cleaning_done = true;
-        Debug.print(DBG_INFO,"Robot Stop after: %d mn",(int)(millis()-RobotPump.LastStartTime)/1000/60);
-    }*/
-
-    //start cleaning robot
-    if (storage.RobotOn && !storage.WinterMode && !RobotPump.IsRunning())
-    {
-        RobotPump.Start();
-        cleaning_done = false;
-        Debug.print(DBG_INFO,"Robot Start");   
-    }
-    if(RobotPump.IsRunning() && !storage.RobotOn)
+    if(RobotPump.IsRunning() && storage.AutoMode && ((millis() - RobotPump.LastStartTime) / 1000 / 60) >= ROBOT_DURATION)
     {
         RobotPump.Stop();
         cleaning_done = true;
         Debug.print(DBG_INFO,"Robot Stop after: %d mn",(int)(millis()-RobotPump.LastStartTime)/1000/60);
     }
-
 
     // start PIDs with delay after FiltrationStart in order to let the readings stabilize
     // start inhibited if water temperature below threshold and/or in winter mode
@@ -219,18 +220,20 @@ void PoolMaster(void *pvParameters)
         (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop) &&
         storage.TempValue >= storage.WaterTempLowThreshold)
     {
-        //Start PIDs
-        SetPhPID(true);
-        SetOrpPID(true);
+        //Start PIDs if enabled in configuration
+        if (storage.pHPIDEnabled)
+          SetPhPID(true);
+
+        if (storage.OrpPIDEnabled)
+          SetOrpPID(true);
     }
 
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
     if (storage.AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && (hour() >= storage.FiltrationStop || hour() < storage.FiltrationStart))
     {
-      SetPhPID(false);
-      SetOrpPID(false);
-      if(OrpProd.IsRunning()) OrpProd.Stop();  //ajout
-      FiltrationPump.Stop();
+        SetPhPID(false);
+        SetOrpPID(false);
+        FiltrationPump.Stop();
     }
 
     //Outside regular filtration hours, start filtration in case of cold Air temperatures (<-2.0deg)
@@ -247,8 +250,8 @@ void PoolMaster(void *pvParameters)
         AntiFreezeFiltering = false;
     }
 
-    //If filtration pump has been running for over 45secs but pressure is still low, stop the filtration pump, something is wrong, set error flag
-    if (FiltrationPump.IsRunning() && ((millis() - FiltrationPump.LastStartTime) > 45000) && (storage.PSIValue < storage.PSI_MedThreshold))
+    //If filtration pump has been running for over 2mn but pressure is still low, stop the filtration pump, something is wrong, set error flag
+    if (FiltrationPump.IsRunning() && ((millis() - FiltrationPump.LastStartTime) > 180000) && (storage.PSIValue < storage.PSI_MedThreshold))
     {
         FiltrationPump.Stop();
         PSIError = true;
@@ -267,8 +270,10 @@ void PoolMaster(void *pvParameters)
     //UPdate Nextion TFT
     UpdateTFT();
 
+    #ifdef SMTP
     //Send email if alarm(s) occured
     Send_Email();
+    #endif
 
     #ifdef CHRONO
     t_act = millis() - td;
@@ -329,6 +334,7 @@ void SetOrpPID(bool Enable)
   }
 }
 
+#ifdef SMTP
 bool SMTP_Connect(){
   Debug.print(DBG_DEBUG,"SMTP Connection starts");
   if (!smtp.connect(&config)){
@@ -451,3 +457,4 @@ void smtpCallback(SMTP_Status status){
     smtp.sendingResult.clear();
   }
 }
+#endif
