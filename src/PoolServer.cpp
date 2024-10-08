@@ -207,11 +207,10 @@ void ProcessCommand(void *pvParameters)
             SetPhPID(false);
             SetOrpPID(false);
           }
-          else
-          {
-            storage.AutoMode = 1;
-          }
+          
+          else storage.AutoMode = !storage.WinterMode;
           saveParam("AutoMode",storage.AutoMode);
+          PublishSettings();
         }
          // "Electrolyse"
         // command which (un)enables Electrolyser
@@ -234,7 +233,8 @@ void ProcessCommand(void *pvParameters)
         else if (command.containsKey(F("Winter"))) //"Winter" command which activate/deactivate Winter Mode
         {
           (bool)command[F("Winter")] ? storage.WinterMode = true : storage.WinterMode = false;
-          saveParam("WinterMode",storage.WinterMode);
+          if (storage.AutoMode || FiltrationPump.IsRunning()) storage.WinterMode = false;
+          else saveParam("WinterMode",storage.WinterMode);
           PublishSettings(); 
         }
         else if (command.containsKey(F("PhSetPoint"))) //"PhSetPoint" command which sets the setpoint for Ph
@@ -431,7 +431,7 @@ void ProcessCommand(void *pvParameters)
             SetPhPID(false);
             SetOrpPID(false);
           }
-          else if ((int)command[F("FiltPump")] == 1 && !FiltrationPump.IsRunning())
+          else if ((int)command[F("FiltPump")] == 1 && !FiltrationPump.IsRunning() && !storage.WinterMode)
           {
             EmergencyStopFiltPump = false;
             FiltrationPump.Start();   //start filtration pump

@@ -204,12 +204,12 @@ void UpdateTFT()
         myNex.writeNum(F("pageSwitch.vaElectroOn.val"), TFT_Electro);
       }  
     }
-
+/*
     if (CurrentPage == 1||CurrentPage == 2)
     {
         myNex.writeNum("storage.vaElectrolyse.val", storage.ElectrolyseMode);
     }
-
+*/
     if (CurrentPage == 2)
     { UpdateWiFi(WiFi.status() == WL_CONNECTED);
       myNex.writeStr(F("storage.vaMCFW.txt"), FIRMW);
@@ -266,6 +266,7 @@ void trigger5()
 {
   char Cmd[100] = "{\"Mode\":1}";
   if (storage.AutoMode) Cmd[8] = '0';
+  else TFT_Automode = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -276,7 +277,7 @@ void trigger6()
 {
   char Cmd[100] = "{\"FiltPump\":1}";
   if (FiltrationPump.IsRunning()) Cmd[12] = '0';
- // else TFT_Filt = true;
+  else TFT_Filt = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -287,7 +288,7 @@ void trigger7()
 {
   char Cmd[100] = "{\"RobotPump\":1}";
   if (RobotPump.IsRunning()) Cmd[13] = '0';
- // else TFT_Robot = true;
+  else TFT_Robot = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -308,7 +309,7 @@ void trigger9()
 {
   char Cmd[100] = "{\"Relay\":[1,1]}";
   if (RELAYR1.IsRunning()) Cmd[12] = '0';
- // else TFT_R1 = true;
+  else TFT_R1 = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -319,7 +320,7 @@ void trigger10()
 {
   char Cmd[100] = "{\"Winter\":1}";
   if (storage.WinterMode) Cmd[10] = '0';
-//  else TFT_R2_Winter = true;
+  else TFT_R2_Winter = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -370,7 +371,7 @@ void trigger15()
 {
   char Cmd[100] = "{\"Electrolyse\":1}";
   if (OrpProd.IsRunning()) Cmd[15] = '0';
- // else TFT_Electro = true;
+  else TFT_Electro = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
@@ -403,7 +404,7 @@ void trigger18()
 {
   char Cmd[100] = "{\"ElectrolyseMode\":1}";
   if (storage.ElectrolyseMode) Cmd[10] = '0';
- // else TFT_ElectroMode = true;
+  else TFT_ElectroMode = true;
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }

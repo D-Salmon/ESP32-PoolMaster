@@ -179,6 +179,8 @@ void PoolMaster(void *pvParameters)
     if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
         hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
         FiltrationPump.Start();
+storage.OrpValue = 500;
+
  /*   if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
         !PSIError && hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
         FiltrationPump.Start();
