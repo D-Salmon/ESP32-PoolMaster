@@ -209,8 +209,29 @@ void ProcessCommand(void *pvParameters)
           }
           
           else storage.AutoMode = !storage.WinterMode;
+          if (storage.AutoMode) EmergencyStopFiltPump = false;
           saveParam("AutoMode",storage.AutoMode);
-          PublishSettings();
+        }
+        // "FiltPump" 
+        // command which starts or stops the filtration pump
+        else if (command.containsKey(F("FiltPump"))) //"FiltPump" command which starts or stops the filtration pump
+        {
+          if ((int)command[F("FiltPump")] == 0)
+          {
+            EmergencyStopFiltPump = true;
+            FiltrationPump.Stop();  //stop filtration pump
+
+            //Stop PIDs
+            SetPhPID(false);
+            SetOrpPID(false);
+          }
+          else if ((int)command[F("FiltPump")] == 1 && !storage.WinterMode)
+          {
+            EmergencyStopFiltPump = false;
+            FiltrationPump.Start();   //start filtration pump
+          }
+          storage.AutoMode = 0;
+          saveParam("AutoMode",storage.AutoMode);
         }
          // "Electrolyse"
         // command which (un)enables Electrolyser
@@ -219,10 +240,12 @@ void ProcessCommand(void *pvParameters)
           if ((int)command[F("Electrolyse")] == 1)  // activate electrolyse
           {
             // start electrolyse if not below minimum temperature
-            if (storage.TempValue >= (double)storage.SecureElectro && !OrpProd.IsRunning())
+            if (storage.TempValue >= (double)storage.SecureElectro )
               OrpProd.Start();
           }
-          else if (OrpProd.IsRunning()) OrpProd.Stop();
+          else OrpProd.Stop();
+          storage.AutoMode = 0;
+          saveParam("AutoMode",storage.AutoMode);
         }
         else if (command.containsKey(F("ElectrolyseMode"))) 
         {
@@ -418,25 +441,6 @@ void ProcessCommand(void *pvParameters)
         {
           PublishSettings();
         }         
-        // "FiltPump" 
-        // command which starts or stops the filtration pump
-        else if (command.containsKey(F("FiltPump"))) //"FiltPump" command which starts or stops the filtration pump
-        {
-          if ((int)command[F("FiltPump")] == 0 && FiltrationPump.IsRunning())
-          {
-            EmergencyStopFiltPump = true;
-            FiltrationPump.Stop();  //stop filtration pump
-
-            //Stop PIDs
-            SetPhPID(false);
-            SetOrpPID(false);
-          }
-          else if ((int)command[F("FiltPump")] == 1 && !FiltrationPump.IsRunning() && !storage.WinterMode)
-          {
-            EmergencyStopFiltPump = false;
-            FiltrationPump.Start();   //start filtration pump
-          }
-        }
         else if (command.containsKey(F("RobotPump"))) //"RobotPump" command which starts or stops the Robot pump
         {
           if ((int)command[F("RobotPump")] == 0){

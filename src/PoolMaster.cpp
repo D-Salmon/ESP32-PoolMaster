@@ -131,7 +131,7 @@ void PoolMaster(void *pvParameters)
         setTime(timeinfo.tm_hour,timeinfo.tm_min,timeinfo.tm_sec,timeinfo.tm_mday,timeinfo.tm_mon+1,timeinfo.tm_year-100);
 
     }
-    else if(hour() == 1)
+    else if (hour()==1 && DoneForTheDay)
     {
         DoneForTheDay = false;
     }
@@ -174,27 +174,29 @@ void PoolMaster(void *pvParameters)
     if(second() == 30 && d_calc) d_calc = false;
     #endif
 
+
+storage.OrpValue = 500;
+storage.TempValue = 27;
+storage.PSIValue = 1;
+PSIError = false;
+
     //start filtration pump as scheduled
     if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
-        hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
-        FiltrationPump.Start();
-storage.OrpValue = 500;
-
- /*   if (!EmergencyStopFiltPump && !FiltrationPump.IsRunning() && storage.AutoMode &&
         !PSIError && hour() >= storage.FiltrationStart && hour() < storage.FiltrationStop )
         FiltrationPump.Start();
-*/
+
     //start & stop electrolyse as needed
-    if (FiltrationPump.IsRunning() && storage.ElectrolyseMode)
+    if (FiltrationPump.IsRunning() && storage.ElectrolyseMode && storage.AutoMode)
     {
-        bool ElectrolyseCanStart = (!AntiFreezeFiltering && storage.TempValue >= (double)storage.SecureElectro && ((millis() - FiltrationPump.LastStartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro)) ;
+        bool ElectrolyseCanStart = (!AntiFreezeFiltering && storage.TempValue >= (double)storage.SecureElectro && 
+        ((millis() - FiltrationPump.LastStartTime)/ 1000 / 60 >= (unsigned long)storage.DelayElectro)) ;
 
         if (!OrpProd.IsRunning() && ElectrolyseCanStart && storage.OrpValue <= storage.Orp_SetPoint*0.9) {
             Debug.print(DBG_VERBOSE,"Start Electrolyse low chlorine: %d < %d",storage.OrpValue,storage.Orp_SetPoint*0.9);
             OrpProd.Start();
         }
           
-        if (OrpProd.IsRunning() && storage.AutoMode && (!ElectrolyseCanStart || storage.OrpValue >= storage.Orp_SetPoint*1.05)) {
+        if (OrpProd.IsRunning() && (!ElectrolyseCanStart || storage.OrpValue >= storage.Orp_SetPoint*1.05)) {
             Debug.print(DBG_VERBOSE,"Stop Electrolyse high chlorine: %d > %d",storage.OrpValue, storage.Orp_SetPoint*1.05);
             OrpProd.Stop(); 
         }
@@ -251,7 +253,7 @@ storage.OrpValue = 500;
         AntiFreezeFiltering = false;
     }
 
-    //If filtration pump has been running for over 2mn but pressure is still low, stop the filtration pump, something is wrong, set error flag
+    //If filtration pump has been running for over 3mn but pressure is still low, stop the filtration pump, something is wrong, set error flag
     if (FiltrationPump.IsRunning() && ((millis() - FiltrationPump.LastStartTime) > 180000) && (storage.PSIValue < storage.PSI_MedThreshold))
     {
         FiltrationPump.Stop();
@@ -266,7 +268,7 @@ storage.OrpValue = 500;
         PSIError = true;
         mqttErrorPublish("{\"PSI Error\":1}");
     } else if(storage.PSIValue >= storage.PSI_MedThreshold)
-        PSIError = false;
+  
 
     //UPdate Nextion TFT
     UpdateTFT();
