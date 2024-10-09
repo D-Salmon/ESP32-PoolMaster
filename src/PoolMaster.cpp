@@ -99,10 +99,8 @@ void PoolMaster(void *pvParameters)
     ChlPump.loop();
     RobotPump.loop(); 
     OrpProd.loop();
-
     RELAYR0.loop();
     RELAYR1.loop();
-    if (storage.ElectrolyseMode) OrpProd.loop(); 
 
     //reset time counters at midnight and send sync request to time server
     if (hour() == 0 && !DoneForTheDay)
