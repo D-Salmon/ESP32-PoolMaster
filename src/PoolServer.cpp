@@ -520,10 +520,6 @@ void ProcessCommand(void *pvParameters)
             ChlPump.ClearErrors();
 
           mqttErrorPublish(""); // publish clearing of error(s)
-
-          //start filtration pump if within scheduled time slots
-          if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
-            FiltrationPump.Start();
         }
         //"ElectroSecure" command which is called when electrolyser is configured
         // Secure Temperature

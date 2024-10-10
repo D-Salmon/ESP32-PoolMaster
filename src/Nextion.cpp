@@ -408,3 +408,12 @@ void trigger18()
   xQueueSendToBack(queueIn, &Cmd, 0);
   LastAction = millis();
 }
+
+//  Reboot the system
+// printh 23 02 54 13
+void trigger19()
+{
+  char Cmd[100] = "{\"Reboot\":1}";
+  xQueueSendToBack(queueIn, &Cmd, 0);
+  LastAction = millis();
+}
