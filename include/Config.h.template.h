@@ -31,7 +31,7 @@
 #endif 
 
 // Mail parameters and credentials
-//#define SMTP  // define to activate SMTP email notifications
+#define SMTP  // define to activate SMTP email notifications
 #ifdef SMTP
   #define SMTP_HOST "your smtp server"
   #define SMTP_PORT 587  // check the port number
