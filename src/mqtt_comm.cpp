@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include "Config.h"
 #include "PoolMaster.h"
+#include "Credentials.h"
 
 AsyncMqttClient mqttClient;
 

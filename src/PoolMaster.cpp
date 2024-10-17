@@ -3,6 +3,8 @@
 #include <Arduino.h>                // Arduino framework
 #include "Config.h"
 #include "PoolMaster.h"
+#include "Credentials.h"
+
 #ifdef SMTP
 #include <ESP_Mail_Client.h>
 #endif
@@ -145,9 +147,10 @@ void PoolMaster(void *pvParameters)
         if (storage.WaterTemp < storage.WaterTempLowThreshold){
             storage.FiltrationDuration = 2;}
         else if (storage.WaterTemp >= storage.WaterTempLowThreshold && storage.WaterTemp < storage.WaterTemp_SetPoint){
-            storage.FiltrationDuration = round(storage.WaterTemp / 3.);}
-        else if (storage.WaterTemp >= storage.WaterTemp_SetPoint){
             storage.FiltrationDuration = round(storage.WaterTemp / 2.);}
+        else if (storage.WaterTemp >= storage.WaterTemp_SetPoint){
+            storage.FiltrationDuration = round((storage.WaterTemp / 2.) + 3*(storage.WaterTemp-storage.WaterTemp_SetPoint));}
+        if (storage.FiltrationDuration>24) storage.FiltrationDuration = 24;
     
         storage.FiltrationStart = 15 - (int)round(storage.FiltrationDuration / 2.);
         if (storage.FiltrationStart < storage.FiltrationStartMin)
