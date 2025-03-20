@@ -351,10 +351,10 @@ void ProcessCommand(void *pvParameters)
           PhPID.SetOutputLimits(0, storage.PhPIDWindowSize);    //Whatever happens, don't allow continuous injection of Acid for more than a PID Window
           PublishSettings();
         }
-        else if (command.containsKey(F("Date"))) //"Date" command which sets the Date of RTC module
+/*        else if (command.containsKey(F("Date"))) //"Date" command which sets the Date of RTC module
         {
           setTime((uint8_t)command[F("Date")][4], (uint8_t)command[F("Date")][5], (uint8_t)command[F("Date")][6], (uint8_t)command[F("Date")][0], (uint8_t)command[F("Date")][2], (uint8_t)command[F("Date")][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
-        }
+        }*/
         else if (command.containsKey(F("FiltT0"))) //"FiltT0" command which sets the earliest hour when starting Filtration pump
         {
           storage.FiltrationStartMin = (unsigned int)command[F("FiltT0")];
@@ -574,7 +574,7 @@ void ProcessCommand(void *pvParameters)
           int	rtc_mday = (int)command[F("SetDateTime")][3];
           int	rtc_mon = (int)command[F("SetDateTime")][4];
           int	rtc_year = (int)command[F("SetDateTime")][5];
-          setTime(rtc_hour,rtc_min,rtc_sec,rtc_mday,rtc_mon+1,rtc_year);
+          setTime(rtc_hour,rtc_min,rtc_sec,rtc_mday,rtc_mon,rtc_year);
         }
         //"WifiConfig" command which sets the ESP32 Wifi network
         else if (command.containsKey(F("WifiConfig")))
