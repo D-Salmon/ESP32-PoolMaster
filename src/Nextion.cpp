@@ -136,10 +136,10 @@ void UpdateTFT(void *pvParameters)
         // Home page data is loaded during splash screen to avoid lag when Home page appears
         snprintf_P(temp,sizeof(temp),PSTR("%02d-%02dh"),storage.FiltrationStart,storage.FiltrationStop);
         myNex.writeStr(F(GLOBAL".vaStaSto.txt"),temp);
-        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
-        myNex.writeStr(F(GLOBAL".vaTime.txt"),temp);
-        sprintf(temp, PSTR("%02d/%02d/%02d"), day(), month(), year()-2000);
-        myNex.writeStr(F(GLOBAL".vaDate.txt"),temp);
+//        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
+//        myNex.writeStr(F(GLOBAL".vaTime.txt"),temp);
+//        sprintf(temp, PSTR("%02d/%02d/%02d"), day(), month(), year()-2000);
+//        myNex.writeStr(F(GLOBAL".vaDate.txt"),temp);
         snprintf_P(temp,sizeof(temp),PSTR("%4.2f"),storage.PhValue);
         myNex.writeStr(F(GLOBAL".vapH.txt"),temp);
         snprintf_P(temp,sizeof(temp),PSTR("%3.0f"),storage.OrpValue);
@@ -212,8 +212,12 @@ void UpdateTFT(void *pvParameters)
        * ****************************************/
         LastUpdatedHome = millis();
         // Date and Time
-        sprintf(temp, PSTR("%02d/%02d/%04d %02d:%02d:%02d"), day(), month(), year(), hour(), minute(), second());
-        myNex.writeStr(F("pageHomeSimple.tTimeDate.txt"),temp);
+//        sprintf(temp, PSTR("%02d/%02d/%04d %02d:%02d:%02d"), day(), month(), year(), hour(), minute(), second());
+//        myNex.writeStr(F("pageHomeSimple.tTimeDate.txt"),temp);
+        sprintf(temp, PSTR("%02d/%02d/%04d"), day(), month(), year());
+        myNex.writeStr(F("pageHomeSimple.tDate.txt"),temp);
+        sprintf(temp, PSTR("%02d:%02d:%02d"), hour(), minute(), second());
+        myNex.writeStr(F("pageHomeSimple.tTime.txt"),temp);
 
         // PSI difference with Threshold
         if (storage.PSIValue <= storage.PSI_MedThreshold) {
